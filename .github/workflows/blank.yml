@@ -1,0 +1,102 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+export default function AviatorPredictor() {
+  const [crashData, setCrashData] = useState<number[]>([]);
+  const [safeCashout, setSafeCashout] = useState<number | null>(null);
+  const [riskyCashout, setRiskyCashout] = useState<number | null>(null);
+  const [bankroll, setBankroll] = useState<number>(500);
+  const [betAmount, setBetAmount] = useState<number>(10);
+
+  useEffect(() => {
+    const mockData = Array.from({ length: 50 }, () => {
+      const val = Math.max(1.01, +(Math.random() * 5).toFixed(2));
+      return val;
+    });
+    setCrashData(mockData);
+    calculatePredictions(mockData);
+  }, []);
+
+  const calculatePredictions = (data: number[]) => {
+    const recent = data.slice(-10);
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const std = Math.sqrt(recent.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / recent.length);
+    const safe = +(Math.max(1.2, avg - std)).toFixed(2);
+    const risky = +(Math.min(avg + std, avg * 1.5)).toFixed(2);
+    setSafeCashout(safe);
+    setRiskyCashout(risky);
+  };
+
+  const simulateRound = () => {
+    const crash = Math.max(1.01, +(Math.random() * 5).toFixed(2));
+    const winSafe = crash >= (safeCashout ?? 1.2);
+    const winRisky = crash >= (riskyCashout ?? 1.2);
+
+    let result = 0;
+    result += winSafe ? betAmount * ((safeCashout ?? 1.2) - 1) : -betAmount;
+    result += winRisky ? betAmount * ((riskyCashout ?? 1.2) - 1) : -betAmount;
+
+    setBankroll(prev => +(prev + result).toFixed(2));
+    setCrashData(prev => [...prev.slice(-49), crash]);
+    calculatePredictions([...crashData.slice(-49), crash]);
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4 text-center">Mbokabet Aviator Predictor</h1>
+      <Card className="mb-4">
+        <CardContent>
+          <p className="mb-2">Crash History (last 10):</p>
+          <div className="grid grid-cols-5 gap-2 text-sm">
+            {crashData.slice(-10).map((val, idx) => (
+              <span key={idx} className="bg-gray-100 p-2 rounded text-center">{val}×</span>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4">
+        <CardContent className="space-y-2">
+          <div className="flex justify-between">
+            <p className="font-medium">Predicted Safe Cashout:</p>
+            <div className="text-green-600 text-xl font-bold">{safeCashout}×</div>
+          </div>
+          <div className="flex justify-between">
+            <p className="font-medium">Predicted Risky Target:</p>
+            <div className="text-red-500 text-xl font-bold">{riskyCashout}×</div>
+          </div>
+          <div className="flex justify-between">
+            <p className="font-medium">Bankroll:</p>
+            <div className="text-blue-600 text-xl font-bold">Ksh {bankroll}</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mb-4 flex gap-4">
+        <Input type="number" value={betAmount} onChange={(e) => setBetAmount(+e.target.value)} placeholder="Bet Amount" className="w-1/2" />
+        <Button onClick={simulateRound} className="w-1/2">Simulate Round</Button>
+      </div>
+
+      <Card className="mb-4">
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={crashData.map((value, index) => ({ round: index + 1, crash: value }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="round" />
+              <YAxis domain={[0, 6]} />
+              <Tooltip />
+              <Line type="monotone" dataKey="crash" stroke="#8884d8" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Button onClick={() => calculatePredictions(crashData)} className="w-full mt-2">
+        Recalculate Prediction
+      </Button>
+    </div>
+  );
+}
