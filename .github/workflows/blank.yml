@@ -13,6 +13,18 @@ export default function AviatorPredictor() {
 
   useEffect(() => {
     const mockData = Array.from({ length: 50 }, () => {
+    jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
+# If you accidentally write:
+    run: npm test   # << Incorrect indentation or misplaced key
       const val = Math.max(1.01, +(Math.random() * 5).toFixed(2));
       return val;
     });
